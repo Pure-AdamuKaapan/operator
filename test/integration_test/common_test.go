@@ -68,6 +68,15 @@ const (
 	node2 = nodeReplacePrefix + "2"
 )
 
+type testHook func(t *testing.T) error
+
+func debugHook(msg string) testHook {
+	return func(t *testing.T) error {
+		logrus.Infof(msg)
+		return nil
+	}
+}
+
 // TestrailCase describes one test case on TestRail, which will
 // instantiate the given StorageCluster spec, check that it
 // started/failed to start correctly, and then remove it.
@@ -75,6 +84,12 @@ type TestrailCase struct {
 	CaseIDs                 []string
 	Spec                    corev1.StorageClusterSpec
 	ShouldStartSuccessfully bool
+	// PreTest contains hooks that should run before the installation of the
+	// StorageCluster
+	PreTest []testHook
+	// PostTest contains hooks that should be run after the successful completion
+	// of a test, ideally undoing whatever happened in the PreTest hooks
+	PostTest []testHook
 }
 
 func (trc *TestrailCase) PopulateStorageCluster(cluster *corev1.StorageCluster) error {

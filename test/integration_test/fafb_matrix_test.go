@@ -64,6 +64,8 @@ var flashArrayPositiveInstallTests = []PureTestrailCase{
 				},
 			},
 			ShouldStartSuccessfully: true,
+			PreTest:                 []testHook{debugHook("This is a pre-test hook!")},
+			PostTest:                []testHook{debugHook("This is a post-test hook!")},
 		},
 		BackendRequirements: BackendRequirements{
 			RequiredArrays: 1,
@@ -246,6 +248,15 @@ func matrixTest(c PureTestrailCase) func(*testing.T) {
 			},
 		}...)
 
+		// Run pre-test hooks
+		if c.PreTest != nil {
+			logrus.Infof("Running pre-test hooks")
+			for _, hook := range c.PreTest {
+				err = hook(t)
+				require.NoError(t, err)
+			}
+		}
+
 		// Create px-pure-secret
 		logrus.Infof("Create or update %s in %s", OutputSecretName, pxNamespace)
 		err = createPureSecret(fleetBackends, pxNamespace)
@@ -276,7 +287,16 @@ func matrixTest(c PureTestrailCase) func(*testing.T) {
 		err = deletePureSecretIfExists(cluster.Namespace)
 		require.NoError(t, err)
 
-		// TODO: mark test completion using testrail IDs
+		// TODO: mark test completion using testrail IDs, which should not account for post-test hook failure
+
+		// Run post-test hooks
+		if c.PostTest != nil {
+			logrus.Infof("Running post-test hooks")
+			for _, hook := range c.PostTest {
+				err = hook(t)
+				require.NoError(t, err)
+			}
+		}
 	}
 }
 
